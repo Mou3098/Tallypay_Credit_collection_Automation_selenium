@@ -21,19 +21,19 @@ public class CARD {
         System.out.println("URL of the next page: " + Url2);
         System.out.println("Title of the current page: " + driver.getTitle());
 
-        WebElement input_name = driver.findElement(By.id("nameOnCard"));
+        WebElement input_name = driver.findElement(By.xpath("/html/body/input[1]"));
         String card_holder_name= "Mitu";
         input_name.sendKeys(card_holder_name);
 
         BigDecimal card_number = new BigDecimal("2223000000000007");
-        WebElement card_no= driver.findElement(By.id("number"));
+        WebElement card_no= driver.findElement(By.xpath("/html/body/input[2]"));
         card_no.sendKeys(String.valueOf(card_number));
 
-        WebElement ex_month= driver.findElement(By.id("expiryMonth"));
+        WebElement ex_month= driver.findElement(By.xpath("/html/body/input"));
         int month=01;
         ex_month.sendKeys(String.valueOf(month));
 
-        WebElement ex_year= driver.findElement(By.id("expiryYear"));
+        WebElement ex_year= driver.findElement(By.xpath("/html/body/input"));
         int year=39;
         ex_year.sendKeys(String.valueOf(year));
 
