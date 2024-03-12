@@ -13,6 +13,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.sql.*;
 import java.util.Properties;
 import java.util.Scanner;
 
@@ -20,6 +21,11 @@ public class NAGAD {
     public WebDriver driver;
     Properties properties = new Properties();
 
+    private String np_lg_txn=null;
+    private String payment_gw=null;
+    private String txn_num=null;
+
+    private String sofol_text=null;
     public NAGAD()
     {
         driver = new ChromeDriver();
@@ -69,13 +75,14 @@ public class NAGAD {
         System.out.println("URL of the next page: " + Url2);
         System.out.println("Title of the current page: " + driver.getTitle());
 
-        //String inputNumbers = "01621215877"; // Example numbers to input
         Thread.sleep(6000);
     }
 
     @Test(priority = 4)
     public void nagad_number_input()
     {
+
+        // give each digits of nagad number
         WebElement input1 = driver.findElement(By.xpath("/html/body/div/div/div[4]/form/div[1]/div[1]/input[1]"));
         input1.sendKeys("0");
         WebElement input2= driver.findElement(By.xpath("/html/body/div/div/div[4]/form/div[1]/div[1]/input[2]"));
@@ -112,12 +119,12 @@ public class NAGAD {
         /*Scanner scanner = new Scanner(System.in);
         System.out.print("Please enter the OTP: ");
         String otp = scanner.nextLine();*/
-        Thread.sleep(35000);
+        Thread.sleep(45000);
 
-        String filePath = "D:/m/Selenium_project/credit_collection_automation/src/main/java/org/example/nagad_otp.json";
+        String filePath_otp = "D:/m/Selenium_project/credit_collection_automation/src/main/java/org/example/nagad_otp.json";
         String jsonContent = null;
         try {
-            jsonContent = new String(Files.readAllBytes(Paths.get(filePath)));
+            jsonContent = new String(Files.readAllBytes(Paths.get(filePath_otp)));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -145,6 +152,7 @@ public class NAGAD {
     @Test(priority = 6)
     public void password_insert()
     {
+        // password inserted
         WebElement pass1 = driver.findElement(By.xpath("/html/body/div/div/div[4]/form/div[1]/div/input[1]"));
         pass1.sendKeys(String.valueOf(1));
         WebElement pass2 = driver.findElement(By.xpath("/html/body/div/div/div[4]/form/div[1]/div/input[2]"));
@@ -162,18 +170,189 @@ public class NAGAD {
 
     @Test(priority = 7)
     public void success_page() throws InterruptedException {
-        String Url3 = driver.getCurrentUrl();
-        System.out.println("URL of the next page: " + Url3);
+        String Url_of_txn_state = driver.getCurrentUrl();
+        System.out.println("URL of the next page: " + Url_of_txn_state);
         System.out.println("Title of the current page: " + driver.getTitle());
 
         WebElement tnx = driver.findElement(By.xpath("/html/body/div[2]/div[1]/div[2]/span[1]"));
-        String tnx_t=tnx.getText();
-        System.out.println(tnx_t);
+        String text1=tnx.getText();
+        System.out.println(text1);
         WebElement suc = driver.findElement(By.xpath("/html/body/div[2]/div[1]/div[2]/span[2]"));
-        String suc_t=suc.getText();
-        System.out.println(suc_t);
+        String text2=suc.getText();
+        System.out.println(text2);
+
+        this.sofol_text=text1;
 
         Thread.sleep(15000);
+    }
+
+
+    @Test(priority = 8)
+    public void txn_number_fetch(){
+        if(sofol_text.equals("ধন্যবাদ।")){
+            WebElement txn_id = driver.findElement(By.xpath("/html/body/div[2]/div[5]/div[2]"));
+            String txn_num_local=txn_id.getText();
+            System.out.println(" Transaction_number : "+txn_num_local);
+
+            this.txn_num=txn_num_local;}
+        else{
+            System.out.println("No Txn num fetch from here.");
+        }
+
+    }
+
+    @Test(priority = 9)
+    public void np_txn_log_status_test(){
+
+        String url_of_db = "jdbc:postgresql://10.9.0.77:5432/backend_db";
+        String username = "mitu";
+        String password = "!Mitu@PSL123";
+
+
+        // SQL query to retrieve column value
+        String query = String.format("SELECT * FROM np_txn_log WHERE transaction_number = '%s'", txn_num);
+
+
+        Connection connection = null;
+        Statement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            // Establish database connection
+            connection = DriverManager.getConnection(url_of_db, username, password);
+
+            // Create statement
+            statement = connection.createStatement();
+
+            // Execute query
+            resultSet = statement.executeQuery(query);
+
+            // Process query result
+            if (resultSet.next()) {
+                String status = resultSet.getString("status");
+                System.out.println("Status: " + status);
+                System.out.println("Successfully txn completed .");
+                this.np_lg_txn=status;
+            } else {
+                System.out.println("No data found for the transaction number: " + txn_num);
+            }
+        } catch (SQLException e) {
+            // Handle SQL exception
+            System.out.println("cannot proceeded");
+            e.printStackTrace();
+        } finally {
+            // Close result set, statement, and connection in the finally block
+            if (resultSet != null) {
+                try {
+                    resultSet.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+
+
+    @Test(priority = 10)
+    public void nobopay_payment_gw_status_test(){
+
+        String url_of_db = "jdbc:postgresql://10.9.0.77:5432/nobopay_payment_gw";
+        String username = "mitu";
+        String password = "!Mitu@PSL123";
+
+       /* String txn_num="MMMMS1L8F";*/
+        // SQL query to retrieve column value
+        String query = String.format("SELECT * FROM np_txn_log WHERE transaction_number = '%s'", txn_num);
+        String query2=String.format("SELECT * FROM nagad_txn nt WHERE nt.tp_transaction_number = '%s'", txn_num);
+
+        Connection connection = null;
+        Statement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            // Establish database connection
+            connection = DriverManager.getConnection(url_of_db, username, password);
+
+            // Create statement
+            statement = connection.createStatement();
+
+            // Execute query
+            resultSet = statement.executeQuery(query2);
+
+            // Process query result
+            if (resultSet.next()) {
+                String status = resultSet.getString("status");
+                System.out.println("Status: " + status);
+                System.out.println("Successfully txn completed .");
+                this.payment_gw=status;
+            } else {
+                System.out.println("No data found for the transaction number: " + txn_num);
+            }
+        } catch (SQLException e) {
+            // Handle SQL exception
+            System.out.println("cannot proceeded");
+            e.printStackTrace();
+        } finally {
+            // Close result set, statement, and connection in the finally block
+            if (resultSet != null) {
+                try {
+                    resultSet.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (statement != null) {
+                try {
+                    statement.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (connection != null) {
+                try {
+                    connection.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    @Test(priority = 11)
+    public void txn_status(){
+        if (np_lg_txn == null && payment_gw == null) {
+            System.out.println("Both np_lg_txn and payment_gw are null.");
+        }
+        else if (np_lg_txn == null) {
+            System.out.println("np_lg_txn is null.");
+        }
+        else if (payment_gw == null) {
+            System.out.println("payment_gw dbbl_txn is null.");
+        }
+        else if (np_lg_txn.equals("COMPLETE") && payment_gw.equals("SUCCESS")) {
+            System.out.println("Txn successful from both Backend and Payment GW .");
+        } else if (!np_lg_txn.equals("COMPLETE") && payment_gw.equals("SUCCESS")) {
+            System.out.println("Failed from Backend");
+        } else if ( !payment_gw.equals("SUCCESS") && np_lg_txn.equals("COMPLETE")) {
+            System.out.println("Failed from Payment GW");
+        } else {
+            System.out.println("Failed from both Backend and Payment GW .");
+        }
     }
 
 }
